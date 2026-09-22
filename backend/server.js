@@ -4,6 +4,8 @@ const morgan = require('morgan');
 const dotenv = require('dotenv');
 const { connectDB } = require('./src/config/db');
 const healthRoutes = require('./src/routes/healthRoutes');
+const authRoutes = require('./src/routes/authRoutes');
+const userRoutes = require('./src/routes/userRoutes');
 const notFound = require('./src/middleware/notFound');
 const errorHandler = require('./src/middleware/errorHandler');
 
@@ -62,6 +64,8 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.use('/api/health', healthRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // Error Handling Middleware
 app.use(notFound);
