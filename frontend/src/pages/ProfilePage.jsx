@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getOwnProfile } from '../services/userService';
+import { getMyVideos } from '../services/videoService';
+import VideoCard from '../components/VideoCard';
 import { 
   User, 
   MapPin, 
@@ -16,13 +18,16 @@ import {
   Sparkles, 
   Film, 
   Award,
-  RefreshCw
+  RefreshCw,
+  Plus
 } from 'lucide-react';
 
 const ProfilePage = () => {
   const { user: authUser, updateUser } = useAuth();
   const [profile, setProfile] = useState(authUser);
+  const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingVideos, setLoadingVideos] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -40,7 +45,23 @@ const ProfilePage = () => {
         setLoading(false);
       }
     };
+
+    const fetchVideos = async () => {
+      try {
+        setLoadingVideos(true);
+        const data = await getMyVideos();
+        if (data?.videos) {
+          setVideos(data.videos);
+        }
+      } catch (err) {
+        console.warn('Could not fetch videos:', err);
+      } finally {
+        setLoadingVideos(false);
+      }
+    };
+
     fetchLatest();
+    fetchVideos();
   }, []);
 
   const user = profile || authUser;
@@ -82,7 +103,11 @@ const ProfilePage = () => {
                   <ExternalLink size={14} />
                   <span>{copied ? 'Link Copied!' : 'Share Profile'}</span>
                 </button>
-                <Link to="/profile/edit" className="btn btn-primary btn-sm">
+                <Link to="/upload" className="btn btn-primary btn-sm">
+                  <Plus size={14} />
+                  <span>Upload Video</span>
+                </Link>
+                <Link to="/profile/edit" className="btn btn-secondary btn-sm">
                   <Settings size={14} />
                   <span>Edit Profile</span>
                 </Link>
@@ -204,25 +229,50 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        {/* Portfolio Section Preview (Phase 3 Extension Point) */}
+        {/* Video Showcase & Portfolio Grid */}
         <div className="glass-card portfolio-preview-card">
           <div className="portfolio-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Film size={20} color="var(--accent-purple)" />
-              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Video Showcase & Portfolio</h2>
+              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>My Showcase Portfolio ({videos.length})</h2>
             </div>
-            <span className="nav-tag">Phase 3: Video Storage</span>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <Link to="/upload" className="btn btn-primary btn-sm">
+                <Plus size={14} />
+                <span>Upload</span>
+              </Link>
+              <Link to="/my-videos" className="btn btn-secondary btn-sm">
+                <span>Manage</span>
+              </Link>
+            </div>
           </div>
 
-          <div className="portfolio-empty-state">
-            <div className="portfolio-empty-icon">
-              <Film size={36} color="var(--text-muted)" />
+          {loadingVideos ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', gap: '10px', color: 'var(--text-secondary)' }}>
+              <RefreshCw size={20} className="spin" />
+              <span>Loading showcase videos...</span>
             </div>
-            <h3>No Videos Uploaded Yet</h3>
-            <p>
-              Your talent showcases and performance videos will appear here once Phase 3 Video Upload & Management is activated.
-            </p>
-          </div>
+          ) : videos.length > 0 ? (
+            <div className="portfolio-videos-grid">
+              {videos.map((vid) => (
+                <VideoCard key={vid._id} video={vid} />
+              ))}
+            </div>
+          ) : (
+            <div className="portfolio-empty-state">
+              <div className="portfolio-empty-icon">
+                <Film size={36} color="var(--text-muted)" />
+              </div>
+              <h3>No Showcases Uploaded Yet</h3>
+              <p style={{ marginBottom: '16px' }}>
+                Upload your first performance video to kick off your Spotly discovery portfolio!
+              </p>
+              <Link to="/upload" className="btn btn-primary btn-sm">
+                <Plus size={14} />
+                <span>Upload Your First Video</span>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>

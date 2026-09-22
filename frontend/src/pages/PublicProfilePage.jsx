@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getPublicProfile } from '../services/userService';
+import { getCreatorVideos } from '../services/videoService';
 import { useAuth } from '../context/AuthContext';
+import VideoCard from '../components/VideoCard';
 import { 
   User, 
   MapPin, 
@@ -17,7 +19,8 @@ import {
   Film, 
   Award,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Plus
 } from 'lucide-react';
 
 const PublicProfilePage = () => {
@@ -25,7 +28,9 @@ const PublicProfilePage = () => {
   const { user: authUser } = useAuth();
 
   const [profile, setProfile] = useState(null);
+  const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingVideos, setLoadingVideos] = useState(true);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
 
@@ -47,8 +52,23 @@ const PublicProfilePage = () => {
       }
     };
 
+    const fetchVideos = async () => {
+      try {
+        setLoadingVideos(true);
+        const data = await getCreatorVideos(username);
+        if (data?.videos) {
+          setVideos(data.videos);
+        }
+      } catch (err) {
+        console.warn('Could not load creator videos:', err);
+      } finally {
+        setLoadingVideos(false);
+      }
+    };
+
     if (username) {
       fetchUser();
+      fetchVideos();
     }
   }, [username]);
 
@@ -126,10 +146,16 @@ const PublicProfilePage = () => {
                 </button>
 
                 {isOwnProfile && (
-                  <Link to="/profile/edit" className="btn btn-primary btn-sm">
-                    <Settings size={14} />
-                    <span>Edit Profile</span>
-                  </Link>
+                  <>
+                    <Link to="/upload" className="btn btn-primary btn-sm">
+                      <Plus size={14} />
+                      <span>Upload</span>
+                    </Link>
+                    <Link to="/profile/edit" className="btn btn-secondary btn-sm">
+                      <Settings size={14} />
+                      <span>Edit Profile</span>
+                    </Link>
+                  </>
                 )}
               </div>
             </div>
@@ -237,25 +263,37 @@ const PublicProfilePage = () => {
           </div>
         </div>
 
-        {/* Portfolio Section Preview */}
+        {/* Video Showcase Portfolio */}
         <div className="glass-card portfolio-preview-card">
           <div className="portfolio-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Film size={20} color="var(--accent-purple)" />
-              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Spotly Video Showcase</h2>
+              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Showcase Portfolio ({videos.length})</h2>
             </div>
-            <span className="nav-tag">Phase 3: Video Discovery</span>
           </div>
 
-          <div className="portfolio-empty-state">
-            <div className="portfolio-empty-icon">
-              <Film size={36} color="var(--text-muted)" />
+          {loadingVideos ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', gap: '10px', color: 'var(--text-secondary)' }}>
+              <RefreshCw size={20} className="spin" />
+              <span>Loading showcase videos...</span>
             </div>
-            <h3>No Videos Published Yet</h3>
-            <p>
-              @{profile.username} has not uploaded any showcase videos yet. Videos will be discovered here once Phase 3 is active!
-            </p>
-          </div>
+          ) : videos.length > 0 ? (
+            <div className="portfolio-videos-grid">
+              {videos.map((vid) => (
+                <VideoCard key={vid._id} video={vid} />
+              ))}
+            </div>
+          ) : (
+            <div className="portfolio-empty-state">
+              <div className="portfolio-empty-icon">
+                <Film size={36} color="var(--text-muted)" />
+              </div>
+              <h3>No Videos Published Yet</h3>
+              <p>
+                @{profile.username} has not uploaded any showcase videos yet. Check back soon for fresh performances!
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

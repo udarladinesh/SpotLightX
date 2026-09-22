@@ -47,14 +47,37 @@ const protect = async (req, res, next) => {
     }
   }
 
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: 'Not authorized. No token provided.'
-    });
+  return res.status(401).json({
+    success: false,
+    message: 'Not authorized. No token provided.'
+  });
+};
+
+/**
+ * Optional authentication middleware: if a valid token is provided, attach req.user,
+ * otherwise continue without rejecting the request.
+ */
+const optionalAuth = async (req, res, next) => {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer ')
+  ) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const secret = getJwtSecret();
+      const decoded = jwt.verify(token, secret);
+      const user = await User.findById(decoded.id).select('-password');
+      if (user) {
+        req.user = user;
+      }
+    } catch (error) {
+      // For optional auth, ignore token errors and proceed as unauthenticated guest
+    }
   }
+  return next();
 };
 
 module.exports = {
-  protect
+  protect,
+  optionalAuth
 };

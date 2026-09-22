@@ -12,6 +12,10 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import EditProfilePage from './pages/EditProfilePage';
 import PublicProfilePage from './pages/PublicProfilePage';
+import UploadVideoPage from './pages/UploadVideoPage';
+import MyVideosPage from './pages/MyVideosPage';
+import VideoDetailsPage from './pages/VideoDetailsPage';
+import EditVideoPage from './pages/EditVideoPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -27,8 +31,9 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/u/:username" element={<PublicProfilePage />} />
+              <Route path="/v/:id" element={<VideoDetailsPage />} />
 
-              {/* Protected Routes */}
+              {/* Protected User & Video Management Routes */}
               <Route
                 path="/profile"
                 element={
@@ -42,6 +47,30 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <EditProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/upload"
+                element={
+                  <ProtectedRoute>
+                    <UploadVideoPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-videos"
+                element={
+                  <ProtectedRoute>
+                    <MyVideosPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/v/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <EditVideoPage />
                   </ProtectedRoute>
                 }
               />

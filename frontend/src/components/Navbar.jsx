@@ -10,7 +10,9 @@ import {
   UserPlus, 
   ChevronDown,
   Layers,
-  ExternalLink
+  ExternalLink,
+  Upload,
+  Film
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -56,62 +58,76 @@ const Navbar = () => {
         </Link>
 
         {/* Navigation & Auth Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           {/* Phase Badge */}
           <span className="nav-tag hide-mobile">
             <Layers size={13} style={{ marginRight: '5px', verticalAlign: '-1px' }} />
-            Phase 2: Auth & Profiles
+            Phase 3: Video Storage
           </span>
 
           {isAuthenticated ? (
-            /* Logged In User Menu */
-            <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="user-nav-btn"
-                aria-expanded={dropdownOpen}
-              >
-                <img 
-                  src={avatarUrl} 
-                  alt={user?.displayName || 'User Avatar'} 
-                  className="nav-avatar"
-                />
-                <span className="nav-username">{user?.displayName || user?.username}</span>
-                <ChevronDown size={15} color="var(--text-secondary)" />
-              </button>
+            /* Logged In User Actions */
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Upload CTA */}
+              <Link to="/upload" className="btn btn-primary btn-sm">
+                <Upload size={14} />
+                <span>Upload</span>
+              </Link>
 
-              {dropdownOpen && (
-                <div className="user-dropdown-menu">
-                  <div className="dropdown-user-info">
-                    <p className="dropdown-name">{user?.displayName}</p>
-                    <p className="dropdown-handle">@{user?.username}</p>
+              {/* User Dropdown */}
+              <div className="user-menu-container" ref={dropdownRef} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="user-nav-btn"
+                  aria-expanded={dropdownOpen}
+                >
+                  <img 
+                    src={avatarUrl} 
+                    alt={user?.displayName || 'User Avatar'} 
+                    className="nav-avatar"
+                  />
+                  <span className="nav-username">{user?.displayName || user?.username}</span>
+                  <ChevronDown size={15} color="var(--text-secondary)" />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="user-dropdown-menu">
+                    <div className="dropdown-user-info">
+                      <p className="dropdown-name">{user?.displayName}</p>
+                      <p className="dropdown-handle">@{user?.username}</p>
+                    </div>
+                    
+                    <div className="dropdown-divider" />
+
+                    <Link to="/profile" className="dropdown-item">
+                      <User size={16} />
+                      <span>My Profile</span>
+                    </Link>
+
+                    <Link to="/my-videos" className="dropdown-item">
+                      <Film size={16} />
+                      <span>My Videos</span>
+                    </Link>
+
+                    <Link to={`/u/${user?.username}`} className="dropdown-item">
+                      <ExternalLink size={16} />
+                      <span>Public View</span>
+                    </Link>
+
+                    <Link to="/profile/edit" className="dropdown-item">
+                      <Settings size={16} />
+                      <span>Edit Profile</span>
+                    </Link>
+
+                    <div className="dropdown-divider" />
+
+                    <button onClick={handleLogout} className="dropdown-item logout-btn">
+                      <LogOut size={16} />
+                      <span>Sign Out</span>
+                    </button>
                   </div>
-                  
-                  <div className="dropdown-divider" />
-
-                  <Link to="/profile" className="dropdown-item">
-                    <User size={16} />
-                    <span>My Profile</span>
-                  </Link>
-
-                  <Link to={`/u/${user?.username}`} className="dropdown-item">
-                    <ExternalLink size={16} />
-                    <span>Public View</span>
-                  </Link>
-
-                  <Link to="/profile/edit" className="dropdown-item">
-                    <Settings size={16} />
-                    <span>Edit Profile</span>
-                  </Link>
-
-                  <div className="dropdown-divider" />
-
-                  <button onClick={handleLogout} className="dropdown-item logout-btn">
-                    <LogOut size={16} />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ) : (
             /* Logged Out Buttons */
