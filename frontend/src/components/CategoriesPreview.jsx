@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Sparkles, 
   Mic2, 
@@ -9,7 +10,8 @@ import {
   Radio, 
   Code2, 
   Compass, 
-  Award 
+  Award,
+  ArrowRight
 } from 'lucide-react';
 
 const categories = [
@@ -92,7 +94,12 @@ const CategoriesPreview = () => {
           {categories.map((cat, index) => {
             const IconComponent = cat.icon;
             return (
-              <div key={index} className="category-card">
+              <Link 
+                key={index} 
+                to={`/discover?category=${encodeURIComponent(cat.name)}`} 
+                className="category-card"
+                style={{ textDecoration: 'none', display: 'block' }}
+              >
                 <div 
                   className="category-icon-wrap" 
                   style={{ 
@@ -104,7 +111,11 @@ const CategoriesPreview = () => {
                 </div>
                 <div className="category-name">{cat.name}</div>
                 <div className="category-desc">{cat.desc}</div>
-              </div>
+                <div className="category-card-cta" style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.775rem', color: cat.color, fontWeight: 600 }}>
+                  <span>Explore Feed</span>
+                  <ArrowRight size={13} />
+                </div>
+              </Link>
             );
           })}
         </div>

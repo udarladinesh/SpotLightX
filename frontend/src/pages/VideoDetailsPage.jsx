@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getVideoById, deleteVideo } from '../services/videoService';
 import { useAuth } from '../context/AuthContext';
+import LikeButton from '../components/LikeButton';
+import SaveButton from '../components/SaveButton';
+import FollowButton from '../components/FollowButton';
+import SocialStats from '../components/SocialStats';
+import CommentSection from '../components/CommentSection';
 import {
   Play,
   Sparkles,
@@ -16,7 +21,9 @@ import {
   RefreshCw,
   AlertCircle,
   ArrowLeft,
-  CheckCircle2
+  CheckCircle2,
+  Heart,
+  MessageSquare
 } from 'lucide-react';
 
 const VideoDetailsPage = () => {
@@ -30,6 +37,8 @@ const VideoDetailsPage = () => {
   const [copied, setCopied] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [commentCount, setCommentCount] = useState(0);
 
   useEffect(() => {
     const fetchVideo = async () => {
@@ -39,6 +48,8 @@ const VideoDetailsPage = () => {
         const data = await getVideoById(id);
         if (data?.video) {
           setVideo(data.video);
+          setLikeCount(data.video.likeCount || 0);
+          setCommentCount(data.video.commentCount || 0);
         } else {
           setError('Video not found.');
         }
@@ -150,12 +161,27 @@ const VideoDetailsPage = () => {
 
               <h1 className="video-details-title">{video.title}</h1>
 
-              {/* Action Bar */}
+              {/* Action Bar (Like, Save, Share, Edit/Delete) */}
               <div className="video-actions-bar">
-                <button onClick={copyShareLink} className="btn btn-secondary btn-sm">
-                  <Share2 size={15} />
-                  <span>{copied ? 'Link Copied!' : 'Share Video'}</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <LikeButton
+                    videoId={video._id}
+                    initialLiked={video.isLiked}
+                    initialCount={likeCount}
+                    onCountChange={(newCount) => setLikeCount(newCount)}
+                  />
+
+                  <SaveButton
+                    videoId={video._id}
+                    initialSaved={video.isSaved}
+                    showLabel={true}
+                  />
+
+                  <button onClick={copyShareLink} className="btn btn-secondary btn-sm">
+                    <Share2 size={15} />
+                    <span>{copied ? 'Link Copied!' : 'Share'}</span>
+                  </button>
+                </div>
 
                 {isOwner && (
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -201,12 +227,21 @@ const VideoDetailsPage = () => {
                 </div>
               )}
             </div>
+
+            {/* Comments Section */}
+            <div className="glass-card" style={{ marginTop: '24px', padding: '24px' }}>
+              <CommentSection
+                videoId={video._id}
+                initialCommentCount={commentCount}
+                onCountChange={(newCount) => setCommentCount(newCount)}
+              />
+            </div>
           </div>
 
           {/* Creator Sidebar Column */}
           <div className="video-player-sidebar-col">
             <div className="glass-card creator-showcase-sidebar">
-              <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '16px' }}>
                 <Link to={`/u/${creator.username}`}>
                   <img src={avatarUrl} alt={creator.displayName} className="creator-sidebar-avatar" />
                 </Link>
@@ -217,6 +252,20 @@ const VideoDetailsPage = () => {
                 </h2>
                 <p style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', margin: 0 }}>@{creator.username}</p>
                 <span className="profile-role-badge" style={{ marginTop: '6px', display: 'inline-block' }}>Creator</span>
+              </div>
+
+              {/* Follow Button & Social Stats in Creator Card */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
+                {creator._id && (
+                  <SocialStats userId={creator._id} />
+                )}
+                {creator._id && !isOwner && (
+                  <FollowButton
+                    targetUserId={creator._id}
+                    targetUsername={creator.username}
+                    size="sm"
+                  />
+                )}
               </div>
 
               {creator.bio && (

@@ -82,10 +82,20 @@ const videoSchema = new mongoose.Schema(
   }
 );
 
-// Composite index for fast category & recency querying
+// Composite indexes for fast category & recency querying
 videoSchema.index({ category: 1, createdAt: -1 });
 videoSchema.index({ creator: 1, createdAt: -1 });
+
+// Composite indexes for high-performance Phase 5 discovery feeds & Phase 6 search
+videoSchema.index({ status: 1, createdAt: -1 });
+videoSchema.index({ status: 1, category: 1, createdAt: -1 });
+videoSchema.index({ status: 1, creator: 1, createdAt: -1 });
+videoSchema.index({ status: 1, skills: 1 });
+
+// Phase 8: Composite index for fast creator analytics queries
+videoSchema.index({ creator: 1, status: 1, createdAt: -1 });
 
 const Video = mongoose.model('Video', videoSchema);
 
 module.exports = Video;
+

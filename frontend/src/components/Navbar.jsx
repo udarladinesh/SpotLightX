@@ -12,8 +12,15 @@ import {
   Layers,
   ExternalLink,
   Upload,
-  Film
+  Film,
+  Bookmark,
+  Compass,
+  Search,
+  Bell,
+  BarChart2
 } from 'lucide-react';
+import NotificationBell from './NotificationBell';
+
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -49,25 +56,59 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="container navbar-container">
-        {/* Brand */}
-        <Link to="/" className="brand">
-          <div className="brand-icon">
-            <Sparkles size={22} />
-          </div>
-          <span>Spotly</span>
-        </Link>
+        {/* Brand & Main Nav */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <Link to="/" className="brand">
+            <div className="brand-icon">
+              <Sparkles size={22} />
+            </div>
+            <span>Spotly</span>
+          </Link>
+
+          {/* Discover Main Link */}
+          <Link
+            to="/discover"
+            className={`navbar-main-link ${location.pathname === '/discover' ? 'active' : ''}`}
+          >
+            <Compass size={17} />
+            <span>Discover</span>
+          </Link>
+
+          {/* Search Main Link */}
+          <Link
+            to="/search"
+            className={`navbar-main-link ${location.pathname === '/search' ? 'active' : ''}`}
+          >
+            <Search size={17} />
+            <span>Search</span>
+          </Link>
+
+          {/* Analytics Main Link (Authenticated Creators) */}
+          {isAuthenticated && (
+            <Link
+              to="/analytics"
+              className={`navbar-main-link ${location.pathname === '/analytics' ? 'active' : ''}`}
+            >
+              <BarChart2 size={17} />
+              <span>Analytics</span>
+            </Link>
+          )}
+        </div>
 
         {/* Navigation & Auth Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           {/* Phase Badge */}
           <span className="nav-tag hide-mobile">
             <Layers size={13} style={{ marginRight: '5px', verticalAlign: '-1px' }} />
-            Phase 3: Video Storage
+            Phase 8: Creator Analytics
           </span>
 
           {isAuthenticated ? (
             /* Logged In User Actions */
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Notification Bell */}
+              <NotificationBell />
+
               {/* Upload CTA */}
               <Link to="/upload" className="btn btn-primary btn-sm">
                 <Upload size={14} />
@@ -99,6 +140,28 @@ const Navbar = () => {
                     
                     <div className="dropdown-divider" />
 
+                    <Link to="/notifications" className="dropdown-item">
+                      <Bell size={16} />
+                      <span>Notifications</span>
+                    </Link>
+
+                    <Link to="/analytics" className="dropdown-item">
+                      <BarChart2 size={16} />
+                      <span>Creator Analytics</span>
+                    </Link>
+
+                    <Link to="/search" className="dropdown-item">
+                      <Search size={16} />
+                      <span>Search Talent</span>
+                    </Link>
+
+                    <Link to="/discover" className="dropdown-item">
+                      <Compass size={16} />
+                      <span>Discover Feed</span>
+                    </Link>
+
+
+
                     <Link to="/profile" className="dropdown-item">
                       <User size={16} />
                       <span>My Profile</span>
@@ -107,6 +170,11 @@ const Navbar = () => {
                     <Link to="/my-videos" className="dropdown-item">
                       <Film size={16} />
                       <span>My Videos</span>
+                    </Link>
+
+                    <Link to="/saved-videos" className="dropdown-item">
+                      <Bookmark size={16} />
+                      <span>Saved Showcases</span>
                     </Link>
 
                     <Link to={`/u/${user?.username}`} className="dropdown-item">

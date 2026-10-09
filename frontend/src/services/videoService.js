@@ -7,6 +7,7 @@ import apiClient from './api';
  */
 export const uploadVideo = async (formData, onProgress = null) => {
   const response = await apiClient.post('/videos', formData, {
+    timeout: 0, // Disable timeout for video uploads (allows full multipart upload + cloud streaming)
     headers: {
       'Content-Type': 'multipart/form-data'
     },

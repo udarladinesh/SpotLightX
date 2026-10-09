@@ -4,6 +4,8 @@ import { getPublicProfile } from '../services/userService';
 import { getCreatorVideos } from '../services/videoService';
 import { useAuth } from '../context/AuthContext';
 import VideoCard from '../components/VideoCard';
+import FollowButton from '../components/FollowButton';
+import SocialStats from '../components/SocialStats';
 import { 
   User, 
   MapPin, 
@@ -33,6 +35,7 @@ const PublicProfilePage = () => {
   const [loadingVideos, setLoadingVideos] = useState(true);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -42,6 +45,7 @@ const PublicProfilePage = () => {
         const data = await getPublicProfile(username);
         if (data?.user) {
           setProfile(data.user);
+          setFollowerCount(data.user.followerCount || 0);
         } else {
           setError('Creator not found');
         }
@@ -145,6 +149,16 @@ const PublicProfilePage = () => {
                   <span>{copied ? 'Link Copied!' : 'Share'}</span>
                 </button>
 
+                {!isOwnProfile && profile._id && (
+                  <FollowButton
+                    targetUserId={profile._id}
+                    targetUsername={profile.username}
+                    initialFollowerCount={followerCount}
+                    onFollowChange={(isFollowing, newCount) => setFollowerCount(newCount)}
+                    size="sm"
+                  />
+                )}
+
                 {isOwnProfile && (
                   <>
                     <Link to="/upload" className="btn btn-primary btn-sm">
@@ -168,6 +182,15 @@ const PublicProfilePage = () => {
               </div>
               
               <p className="profile-username">@{profile.username}</p>
+
+              {/* Social Stats (Followers & Following) */}
+              <div style={{ margin: '12px 0 16px' }}>
+                <SocialStats
+                  followerCount={followerCount}
+                  followingCount={profile.followingCount}
+                  userId={profile._id}
+                />
+              </div>
 
               {profile.bio && (
                 <p className="profile-bio">{profile.bio}</p>

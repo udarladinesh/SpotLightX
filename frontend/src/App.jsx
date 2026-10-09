@@ -14,8 +14,13 @@ import EditProfilePage from './pages/EditProfilePage';
 import PublicProfilePage from './pages/PublicProfilePage';
 import UploadVideoPage from './pages/UploadVideoPage';
 import MyVideosPage from './pages/MyVideosPage';
+import SavedVideosPage from './pages/SavedVideosPage';
 import VideoDetailsPage from './pages/VideoDetailsPage';
 import EditVideoPage from './pages/EditVideoPage';
+import DiscoverPage from './pages/DiscoverPage';
+import SearchPage from './pages/SearchPage';
+import NotificationsPage from './pages/NotificationsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -28,10 +33,34 @@ function App() {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<HomePage />} />
+              <Route path="/discover" element={<DiscoverPage />} />
+              <Route path="/search" element={<SearchPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/u/:username" element={<PublicProfilePage />} />
               <Route path="/v/:id" element={<VideoDetailsPage />} />
+
+              {/* Protected Notification & Activity Routes */}
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <NotificationsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected Phase 8 Creator Analytics Route */}
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute>
+                    <AnalyticsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+
 
               {/* Protected User & Video Management Routes */}
               <Route
@@ -63,6 +92,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MyVideosPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/saved-videos"
+                element={
+                  <ProtectedRoute>
+                    <SavedVideosPage />
                   </ProtectedRoute>
                 }
               />

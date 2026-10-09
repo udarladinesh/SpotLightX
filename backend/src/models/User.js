@@ -138,8 +138,14 @@ userSchema.methods.toSafeObject = function () {
   return userObj;
 };
 
+// Indexes for fast creator search & discovery
+userSchema.index({ categories: 1 });
+userSchema.index({ skills: 1 });
+userSchema.index({ createdAt: -1 });
+
 // Export constants alongside model
 const User = mongoose.model('User', userSchema);
 User.ALLOWED_CATEGORIES = ALLOWED_CATEGORIES;
 
 module.exports = User;
+

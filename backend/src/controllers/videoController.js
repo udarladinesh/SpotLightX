@@ -2,6 +2,9 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const Video = require('../models/Video');
 const User = require('../models/User');
+const Like = require('../models/Like');
+const Comment = require('../models/Comment');
+const Save = require('../models/Save');
 const {
   uploadVideo,
   uploadThumbnail,
@@ -9,6 +12,48 @@ const {
   deleteThumbnailAsset,
   isCloudinaryConfigured
 } = require('../services/storageService');
+const {
+  createNotification,
+  deleteNotificationsForVideo
+} = require('../services/notificationService');
+
+/**
+ * Helper to batch enrich video documents with social stats (likeCount, commentCount, isLiked, isSaved)
+ */
+async function enrichVideosWithSocial(videos, requesterId = null) {
+  if (!videos || videos.length === 0) return [];
+  const videoIds = videos.map((v) => v._id);
+
+  const [likeAgg, commentAgg, userLikes, userSaves] = await Promise.all([
+    Like.aggregate([
+      { $match: { video: { $in: videoIds } } },
+      { $group: { _id: '$video', count: { $sum: 1 } } }
+    ]),
+    Comment.aggregate([
+      { $match: { video: { $in: videoIds } } },
+      { $group: { _id: '$video', count: { $sum: 1 } } }
+    ]),
+    requesterId ? Like.find({ user: requesterId, video: { $in: videoIds } }).select('video') : [],
+    requesterId ? Save.find({ user: requesterId, video: { $in: videoIds } }).select('video') : []
+  ]);
+
+  const likeMap = new Map(likeAgg.map((item) => [item._id.toString(), item.count]));
+  const commentMap = new Map(commentAgg.map((item) => [item._id.toString(), item.count]));
+  const likedSet = new Set(userLikes.map((item) => item.video.toString()));
+  const savedSet = new Set(userSaves.map((item) => item.video.toString()));
+
+  return videos.map((v) => {
+    const vObj = v.toObject ? v.toObject() : { ...v };
+    const idStr = v._id.toString();
+    return {
+      ...vObj,
+      likeCount: likeMap.get(idStr) || 0,
+      commentCount: commentMap.get(idStr) || 0,
+      isLiked: likedSet.has(idStr),
+      isSaved: savedSet.has(idStr)
+    };
+  });
+}
 
 /**
  * In-memory view cooldown tracker: Map<"ip_videoId", timestamp>
@@ -202,6 +247,17 @@ const createVideo = async (req, res, next) => {
       '_id displayName username profileImage bio location'
     );
 
+    // Send notification to creator when showcase is published
+    if (newVideo.status === 'published') {
+      createNotification({
+        recipient: req.user._id,
+        sender: null,
+        type: 'VIDEO_PUBLISHED',
+        message: `Your showcase "${newVideo.title}" is now published on Spotly!`,
+        video: newVideo._id
+      }).catch((e) => console.warn('Failed to send video published notification:', e.message));
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Video uploaded successfully!',
@@ -223,9 +279,11 @@ const createVideo = async (req, res, next) => {
  */
 const getMyVideos = async (req, res, next) => {
   try {
-    const videos = await Video.find({ creator: req.user._id })
+    const rawVideos = await Video.find({ creator: req.user._id })
       .sort({ createdAt: -1 })
       .populate('creator', '_id displayName username profileImage');
+
+    const videos = await enrichVideosWithSocial(rawVideos, req.user._id);
 
     return res.status(200).json({
       success: true,
@@ -289,9 +347,25 @@ const getVideoById = async (req, res, next) => {
       }
     }
 
+    // Fetch social stats (likes, comments, isLiked, isSaved)
+    const [likeCount, commentCount, isLiked, isSaved] = await Promise.all([
+      Like.countDocuments({ video: video._id }),
+      Comment.countDocuments({ video: video._id }),
+      req.user ? Like.exists({ user: req.user._id, video: video._id }) : false,
+      req.user ? Save.exists({ user: req.user._id, video: video._id }) : false
+    ]);
+
+    const videoObj = {
+      ...video.toObject(),
+      likeCount,
+      commentCount,
+      isLiked: Boolean(isLiked),
+      isSaved: Boolean(isSaved)
+    };
+
     return res.status(200).json({
       success: true,
-      video
+      video: videoObj
     });
   } catch (error) {
     next(error);
@@ -373,6 +447,7 @@ const updateVideo = async (req, res, next) => {
       video.skills = parseSkills(skills);
     }
 
+    const wasDraft = video.status === 'draft';
     // Update Status if provided
     if (status !== undefined) {
       if (!['published', 'draft'].includes(status)) {
@@ -395,6 +470,16 @@ const updateVideo = async (req, res, next) => {
       'creator',
       '_id displayName username profileImage bio'
     );
+
+    if (wasDraft && updatedVideo.status === 'published') {
+      createNotification({
+        recipient: req.user._id,
+        sender: null,
+        type: 'VIDEO_PUBLISHED',
+        message: `Your showcase "${updatedVideo.title}" is now published on Spotly!`,
+        video: updatedVideo._id
+      }).catch((e) => console.warn('Failed to send video published notification:', e.message));
+    }
 
     return res.status(200).json({
       success: true,
@@ -454,6 +539,14 @@ const deleteVideo = async (req, res, next) => {
     // 3. Delete document from MongoDB
     await Video.findByIdAndDelete(id);
 
+    // 4. Cascade delete associated social interactions (Likes, Comments, Saves, Notifications)
+    await Promise.all([
+      Like.deleteMany({ video: id }),
+      Comment.deleteMany({ video: id }),
+      Save.deleteMany({ video: id }),
+      deleteNotificationsForVideo(id)
+    ]);
+
     return res.status(200).json({
       success: true,
       message: 'Video and associated media assets deleted successfully.'
@@ -490,12 +583,14 @@ const getCreatorVideos = async (req, res, next) => {
     }
 
     // Enforce Draft Privacy: Only status: 'published' videos are returned publicly
-    const videos = await Video.find({
+    const rawVideos = await Video.find({
       creator: creator._id,
       status: 'published'
     })
       .sort({ createdAt: -1 })
       .populate('creator', '_id displayName username profileImage');
+
+    const videos = await enrichVideosWithSocial(rawVideos, req.user?._id);
 
     return res.status(200).json({
       success: true,

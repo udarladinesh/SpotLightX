@@ -158,7 +158,11 @@ const UploadVideoPage = () => {
         setErrorMsg(result.message || 'Upload failed. Please try again.');
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || err.message || 'Failed to upload video.');
+      if (err.code === 'ECONNABORTED') {
+        setErrorMsg('Upload timed out. Please check your internet connection and try again.');
+      } else {
+        setErrorMsg(err.response?.data?.message || err.message || 'Failed to upload video.');
+      }
     } finally {
       setUploading(false);
     }
@@ -437,7 +441,9 @@ const UploadVideoPage = () => {
               <div className="upload-progress-container">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Streaming to Cloud Storage...
+                    {uploadProgress < 100
+                      ? `Uploading to Server (${uploadProgress}%)...`
+                      : 'Streaming & Optimizing on Cloud Storage...'}
                   </span>
                   <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
                     {uploadProgress}%

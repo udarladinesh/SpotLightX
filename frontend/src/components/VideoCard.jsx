@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Eye, Sparkles } from 'lucide-react';
+import { Play, Eye, Heart, MessageSquare } from 'lucide-react';
 
 const VideoCard = ({ video }) => {
   if (!video) return null;
@@ -16,6 +16,13 @@ const VideoCard = ({ video }) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const formatCount = (num) => {
+    if (!num) return '0';
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1).replace(/\.0$/, '')}K`;
+    return num.toString();
   };
 
   const durationStr = formatDuration(video.duration);
@@ -58,8 +65,8 @@ const VideoCard = ({ video }) => {
           {video.title}
         </Link>
 
-        {/* Creator Info */}
-        <div className="video-card-creator">
+        {/* Creator Info & Social Metrics */}
+        <div className="video-card-footer-row">
           <Link to={`/u/${creator.username}`} className="video-card-creator-link">
             <img src={avatarUrl} alt={creator.displayName || 'Creator'} className="video-card-avatar" />
             <div className="video-card-creator-text">
@@ -68,9 +75,23 @@ const VideoCard = ({ video }) => {
             </div>
           </Link>
 
-          <div className="video-card-views">
-            <Eye size={13} />
-            <span>{video.views || 0}</span>
+          <div className="video-card-metrics">
+            <div className="video-metric-item" title={`${video.views || 0} views`}>
+              <Eye size={12} />
+              <span>{formatCount(video.views || 0)}</span>
+            </div>
+            {video.likeCount !== undefined && (
+              <div className="video-metric-item" title={`${video.likeCount || 0} likes`}>
+                <Heart size={12} fill={video.isLiked ? '#ef4444' : 'none'} color={video.isLiked ? '#ef4444' : 'currentColor'} />
+                <span>{formatCount(video.likeCount || 0)}</span>
+              </div>
+            )}
+            {video.commentCount !== undefined && (
+              <div className="video-metric-item" title={`${video.commentCount || 0} comments`}>
+                <MessageSquare size={12} />
+                <span>{formatCount(video.commentCount || 0)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

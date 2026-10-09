@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getOwnProfile } from '../services/userService';
 import { getMyVideos } from '../services/videoService';
 import VideoCard from '../components/VideoCard';
+import SocialStats from '../components/SocialStats';
 import { 
   User, 
   MapPin, 
@@ -19,7 +20,8 @@ import {
   Film, 
   Award,
   RefreshCw,
-  Plus
+  Plus,
+  Bookmark
 } from 'lucide-react';
 
 const ProfilePage = () => {
@@ -103,6 +105,10 @@ const ProfilePage = () => {
                   <ExternalLink size={14} />
                   <span>{copied ? 'Link Copied!' : 'Share Profile'}</span>
                 </button>
+                <Link to="/saved-videos" className="btn btn-secondary btn-sm">
+                  <Bookmark size={14} />
+                  <span>Saved</span>
+                </Link>
                 <Link to="/upload" className="btn btn-primary btn-sm">
                   <Plus size={14} />
                   <span>Upload Video</span>
@@ -122,6 +128,15 @@ const ProfilePage = () => {
               </div>
               
               <p className="profile-username">@{user?.username}</p>
+
+              {/* Social Stats (Followers & Following) */}
+              <div style={{ margin: '12px 0 16px' }}>
+                <SocialStats
+                  followerCount={user?.followerCount}
+                  followingCount={user?.followingCount}
+                  userId={user?._id}
+                />
+              </div>
 
               {user?.bio ? (
                 <p className="profile-bio">{user.bio}</p>

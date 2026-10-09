@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Follow = require('../models/Follow');
 
 /**
  * @desc    Get current authenticated user's full profile
@@ -16,9 +17,18 @@ const getOwnProfile = async (req, res, next) => {
       });
     }
 
+    const [followerCount, followingCount] = await Promise.all([
+      Follow.countDocuments({ following: user._id }),
+      Follow.countDocuments({ follower: user._id })
+    ]);
+
+    const userObj = user.toSafeObject();
+    userObj.followerCount = followerCount;
+    userObj.followingCount = followingCount;
+
     return res.status(200).json({
       success: true,
-      user: user.toSafeObject()
+      user: userObj
     });
   } catch (error) {
     next(error);
@@ -169,6 +179,11 @@ const getPublicProfile = async (req, res, next) => {
       });
     }
 
+    const [followerCount, followingCount] = await Promise.all([
+      Follow.countDocuments({ following: user._id }),
+      Follow.countDocuments({ follower: user._id })
+    ]);
+
     // Return safe public profile data
     const publicProfile = {
       _id: user._id,
@@ -180,6 +195,8 @@ const getPublicProfile = async (req, res, next) => {
       categories: user.categories,
       location: user.location,
       socialLinks: user.socialLinks,
+      followerCount,
+      followingCount,
       createdAt: user.createdAt
     };
 

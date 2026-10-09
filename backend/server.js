@@ -9,6 +9,10 @@ const healthRoutes = require('./src/routes/healthRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const videoRoutes = require('./src/routes/videoRoutes');
+const discoverRoutes = require('./src/routes/discoverRoutes');
+const searchRoutes = require('./src/routes/searchRoutes');
+const notificationRoutes = require('./src/routes/notificationRoutes');
+const analyticsRoutes = require('./src/routes/analyticsRoutes');
 const notFound = require('./src/middleware/notFound');
 const errorHandler = require('./src/middleware/errorHandler');
 
@@ -67,16 +71,25 @@ app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/api/discover', discoverRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
+
 
 // Error Handling Middleware
 app.use(notFound);
 app.use(errorHandler);
 
 // Start Server
-const server = app.listen(PORT, () => {
-  console.log(`\n🚀 Spotly Backend Server running in [${process.env.NODE_ENV || 'development'}] mode on port ${PORT}`);
-  console.log(`🔗 Health Check: http://localhost:${PORT}/api/health\n`);
-});
+let server;
+if (require.main === module || process.env.START_SERVER === 'true') {
+  server = app.listen(PORT, () => {
+    console.log(`\n🚀 Spotly Backend Server running in [${process.env.NODE_ENV || 'development'}] mode on port ${PORT}`);
+    console.log(`🔗 Health Check: http://localhost:${PORT}/api/health\n`);
+  });
+}
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {

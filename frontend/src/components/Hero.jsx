@@ -1,5 +1,6 @@
 import React from 'react';
-import { Compass, Flame } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Compass, Flame, Sparkles, Search } from 'lucide-react';
 
 const Hero = () => {
   return (
@@ -22,13 +23,17 @@ const Hero = () => {
         </p>
 
         <div className="hero-cta-group">
-          <a href="#health-status" className="btn btn-primary">
-            <Flame size={18} />
-            System Health Monitor
-          </a>
-          <a href="#categories" className="btn btn-secondary">
+          <Link to="/search" className="btn btn-primary">
+            <Search size={18} />
+            Search Showcases & Creators
+          </Link>
+          <Link to="/discover" className="btn btn-secondary">
             <Compass size={18} />
-            Explore Talent Categories
+            Explore Discover Feeds
+          </Link>
+          <a href="#categories" className="btn btn-glass">
+            <Sparkles size={18} />
+            Categories
           </a>
         </div>
       </div>
@@ -37,3 +42,4 @@ const Hero = () => {
 };
 
 export default Hero;
+
