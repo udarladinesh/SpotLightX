@@ -23,6 +23,9 @@ const SaveButton = ({
     setSaved(Boolean(initialSaved));
   }, [initialSaved]);
 
+  // Synchronous ref lock to prevent duplicate clicks before React re-render
+  const isLockedRef = React.useRef(false);
+
   const handleToggleSave = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -32,7 +35,9 @@ const SaveButton = ({
       return;
     }
 
-    if (loading || !videoId) return;
+    // Immediately drop duplicate clicks
+    if (isLockedRef.current || loading || !videoId) return;
+    isLockedRef.current = true;
 
     const previousSaved = saved;
     const newSaved = !saved;
@@ -56,7 +61,10 @@ const SaveButton = ({
       setTimeout(() => setError(null), 3000);
     } finally {
       setLoading(false);
-      setTimeout(() => setAnimating(false), 600);
+      setTimeout(() => {
+        setAnimating(false);
+        isLockedRef.current = false;
+      }, 300);
     }
   };
 

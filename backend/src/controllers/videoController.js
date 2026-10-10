@@ -56,13 +56,14 @@ async function enrichVideosWithSocial(videos, requesterId = null) {
 }
 
 /**
- * In-memory view cooldown tracker: Map<"ip_videoId", timestamp>
- * Prevents artificial view inflation on repeated refreshes.
+ * In-memory view cooldown tracker: Map<"identifier_videoId", timestamp>
+ * Prevents artificial view inflation on repeated refreshes and duplicate views.
+ * Cooldown: 24 hours per unique user / IP per video.
  */
 const viewCooldowns = new Map();
-const VIEW_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes cooldown per IP per video
+const VIEW_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours cooldown per viewer per video
 
-// Periodic cleanup of expired cooldown timestamps every 10 minutes
+// Periodic cleanup of expired cooldown timestamps every 15 minutes
 setInterval(() => {
   const now = Date.now();
   for (const [key, timestamp] of viewCooldowns.entries()) {
@@ -70,24 +71,74 @@ setInterval(() => {
       viewCooldowns.delete(key);
     }
   }
-}, 10 * 60 * 1000);
+}, 15 * 60 * 1000);
 
 /**
- * Check and record a view attempt
- * @param {string} ip - Client IP
- * @param {string} videoId - Video ObjectId string
- * @returns {boolean} true if view should be counted, false if throttled
+ * Check and record a view attempt with multi-layer duplicate protection:
+ * 1. Creator self-views are never counted.
+ * 2. Authenticated user ID cooldown prevents duplicate views across devices/IPs.
+ * 3. Client IP cooldown prevents duplicate views from unauthenticated viewers.
+ *
+ * @param {string|null} userIdOrIp - Authenticated user ID (if logged in) or client IP
+ * @param {string} ipOrVideoId - Client IP or videoId
+ * @param {string} [videoIdArg] - Video ObjectId string
+ * @param {boolean} [isCreator=false] - Whether the requester is the creator of the video
+ * @returns {boolean} true if view should be counted, false if duplicate/throttled
  */
-function shouldCountView(ip, videoId) {
-  if (!ip || !videoId) return false;
-  const key = `${ip}_${videoId}`;
-  const lastView = viewCooldowns.get(key);
-  const now = Date.now();
-  if (!lastView || now - lastView > VIEW_COOLDOWN_MS) {
-    viewCooldowns.set(key, now);
-    return true;
+function shouldCountView(userIdOrIp, ipOrVideoId, videoIdArg, isCreator = false) {
+  let userId = null;
+  let ip = null;
+  let videoId = null;
+
+  // Handle both 2-arg legacy signature (ip, videoId) and 4-arg signature (userId, ip, videoId, isCreator)
+  if (arguments.length <= 2) {
+    ip = userIdOrIp;
+    videoId = ipOrVideoId;
+  } else {
+    userId = userIdOrIp;
+    ip = ipOrVideoId;
+    videoId = videoIdArg;
   }
-  return false;
+
+  if (!videoId) return false;
+
+  // Rule 1: Creator viewing their own video should never inflate view counts
+  if (isCreator) return false;
+
+  const now = Date.now();
+  let isDuplicate = false;
+
+  // Check authenticated user key if user is logged in
+  if (userId) {
+    const userKey = `user_${userId}_${videoId}`;
+    const lastUserView = viewCooldowns.get(userKey);
+    if (lastUserView && now - lastUserView < VIEW_COOLDOWN_MS) {
+      isDuplicate = true;
+    }
+  }
+
+  // Check client IP key
+  if (ip && ip !== 'unknown-ip') {
+    const ipKey = `ip_${ip}_${videoId}`;
+    const lastIpView = viewCooldowns.get(ipKey);
+    if (lastIpView && now - lastIpView < VIEW_COOLDOWN_MS) {
+      isDuplicate = true;
+    }
+  }
+
+  if (isDuplicate) {
+    return false;
+  }
+
+  // Record view timestamps for both keys to prevent duplicate counting
+  if (userId) {
+    viewCooldowns.set(`user_${userId}_${videoId}`, now);
+  }
+  if (ip && ip !== 'unknown-ip') {
+    viewCooldowns.set(`ip_${ip}_${videoId}`, now);
+  }
+
+  return true;
 }
 
 /**
@@ -338,10 +389,21 @@ const getVideoById = async (req, res, next) => {
       }
     }
 
-    // View counting: If published and not in 15-minute cooldown for this IP, increment views
+    // View counting: If published and not a duplicate view within cooldown, increment views
     if (video.status === 'published') {
-      const clientIp = req.ip || req.connection.remoteAddress || 'unknown-ip';
-      if (shouldCountView(clientIp, video._id.toString())) {
+      const clientIp =
+        req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+        req.ip ||
+        req.connection?.remoteAddress ||
+        'unknown-ip';
+      const userId = req.user ? req.user._id.toString() : null;
+      const isCreator = Boolean(
+        req.user &&
+        video.creator &&
+        req.user._id.toString() === (video.creator._id || video.creator).toString()
+      );
+
+      if (shouldCountView(userId, clientIp, video._id.toString(), isCreator)) {
         await Video.findByIdAndUpdate(video._id, { $inc: { views: 1 } });
         video.views += 1;
       }

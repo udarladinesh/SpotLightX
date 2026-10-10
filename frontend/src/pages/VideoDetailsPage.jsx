@@ -39,27 +39,29 @@ const VideoDetailsPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
+  const [videoPlaybackError, setVideoPlaybackError] = useState(false);
+
+  const fetchVideo = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setVideoPlaybackError(false);
+      const data = await getVideoById(id);
+      if (data?.video) {
+        setVideo(data.video);
+        setLikeCount(data.video.likeCount || 0);
+        setCommentCount(data.video.commentCount || 0);
+      } else {
+        setError('Video not found.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load video.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchVideo = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getVideoById(id);
-        if (data?.video) {
-          setVideo(data.video);
-          setLikeCount(data.video.likeCount || 0);
-          setCommentCount(data.video.commentCount || 0);
-        } else {
-          setError('Video not found.');
-        }
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to load video.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (id) {
       fetchVideo();
     }
@@ -86,9 +88,28 @@ const VideoDetailsPage = () => {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '16px', color: 'var(--text-secondary)' }}>
-        <RefreshCw size={36} className="spin" color="var(--accent-purple)" />
-        <p>Loading Spotly Showcase...</p>
+      <div className="video-details-page-container">
+        <div className="container">
+          <div className="video-details-skeleton-grid">
+            <div className="video-skeleton-main">
+              <div className="skeleton-video-player shimmer" />
+              <div className="glass-card" style={{ padding: '24px 28px', marginTop: '20px' }}>
+                <div className="skeleton-line shimmer" style={{ width: '25%', height: '18px', marginBottom: '14px' }} />
+                <div className="skeleton-line shimmer" style={{ width: '70%', height: '32px', marginBottom: '20px' }} />
+                <div className="skeleton-line shimmer" style={{ width: '40%', height: '36px', marginBottom: '24px' }} />
+                <div className="skeleton-line shimmer" style={{ width: '100%', height: '80px' }} />
+              </div>
+            </div>
+            <div className="video-skeleton-sidebar">
+              <div className="glass-card" style={{ padding: '24px', textAlign: 'center' }}>
+                <div className="skeleton-avatar shimmer" style={{ width: '80px', height: '80px', margin: '0 auto 16px', borderRadius: '50%' }} />
+                <div className="skeleton-line shimmer" style={{ width: '60%', height: '20px', margin: '0 auto 10px' }} />
+                <div className="skeleton-line shimmer" style={{ width: '40%', height: '14px', margin: '0 auto 20px' }} />
+                <div className="skeleton-line shimmer" style={{ width: '80%', height: '38px', margin: '0 auto' }} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -100,9 +121,15 @@ const VideoDetailsPage = () => {
           <AlertCircle size={48} color="var(--status-warning)" style={{ margin: '0 auto 16px' }} />
           <h2 style={{ fontSize: '1.4rem', marginBottom: '8px' }}>Showcase Unavailable</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>{error || 'This video does not exist or has been removed.'}</p>
-          <Link to="/" className="btn btn-primary">
-            Back to Spotly Discovery
-          </Link>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button onClick={fetchVideo} className="btn btn-secondary">
+              <RefreshCw size={15} />
+              <span>Retry</span>
+            </button>
+            <Link to="/discover" className="btn btn-primary">
+              Discover Talent
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -110,7 +137,8 @@ const VideoDetailsPage = () => {
 
   const creator = video.creator || {};
   const isOwner = authUser && (authUser._id === creator._id || authUser.username === creator.username);
-  const avatarUrl = creator.profileImage || `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username || 'creator'}`;
+  const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username || 'creator'}`;
+  const avatarUrl = creator.profileImage || defaultAvatar;
   const uploadDate = new Date(video.createdAt).toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
@@ -122,7 +150,7 @@ const VideoDetailsPage = () => {
       <div className="container">
         {/* Back Link */}
         <div style={{ marginBottom: '16px' }}>
-          <button onClick={() => navigate(-1)} className="btn btn-secondary btn-sm">
+          <button onClick={() => navigate(-1)} className="btn btn-secondary btn-sm" aria-label="Go back to previous page">
             <ArrowLeft size={14} />
             <span>Back</span>
           </button>
@@ -131,18 +159,42 @@ const VideoDetailsPage = () => {
         <div className="video-player-grid">
           {/* Main Video & Content Column */}
           <div className="video-player-main-col">
-            {/* HTML5 Video Player */}
+            {/* HTML5 Video Player with graceful error recovery */}
             <div className="video-player-wrapper">
-              <video
-                src={video.videoUrl}
-                poster={video.thumbnailUrl || undefined}
-                controls
-                playsInline
-                autoPlay={false}
-                className="spotly-html5-player"
-              >
-                Your browser does not support HTML5 video playback.
-              </video>
+              {videoPlaybackError ? (
+                <div className="video-player-error-overlay">
+                  <AlertCircle size={40} color="var(--status-warning)" />
+                  <h3 style={{ fontSize: '1.15rem', marginTop: '12px', marginBottom: '6px' }}>Playback Unavailable</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '360px', marginBottom: '16px', textAlign: 'center' }}>
+                    Unable to stream this video file. Check your internet connection or reload the player.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setVideoPlaybackError(false);
+                      const vidEl = document.getElementById('spotly-video-player');
+                      if (vidEl) vidEl.load();
+                    }}
+                  >
+                    <RefreshCw size={14} />
+                    <span>Retry Playback</span>
+                  </button>
+                </div>
+              ) : (
+                <video
+                  id="spotly-video-player"
+                  src={video.videoUrl}
+                  poster={video.thumbnailUrl || undefined}
+                  controls
+                  playsInline
+                  autoPlay={false}
+                  className="spotly-html5-player"
+                  onError={() => setVideoPlaybackError(true)}
+                >
+                  Your browser does not support HTML5 video playback.
+                </video>
+              )}
             </div>
 
             {/* Video Header & Meta */}
@@ -243,7 +295,15 @@ const VideoDetailsPage = () => {
             <div className="glass-card creator-showcase-sidebar">
               <div style={{ textAlign: 'center', marginBottom: '16px' }}>
                 <Link to={`/u/${creator.username}`}>
-                  <img src={avatarUrl} alt={creator.displayName} className="creator-sidebar-avatar" />
+                  <img
+                    src={avatarUrl}
+                    alt={creator.displayName}
+                    className="creator-sidebar-avatar"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = defaultAvatar;
+                    }}
+                  />
                 </Link>
                 <h2 style={{ fontSize: '1.2rem', marginTop: '10px', marginBottom: '2px' }}>
                   <Link to={`/u/${creator.username}`} style={{ color: 'inherit', textDecoration: 'none' }}>
@@ -289,14 +349,14 @@ const VideoDetailsPage = () => {
           </div>
         </div>
 
-        {/* Delete Modal */}
+        {/* Accessible Delete Modal */}
         {showDeleteModal && (
-          <div className="modal-overlay">
+          <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title">
             <div className="glass-card modal-card">
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: 'var(--status-error)' }}>
                 <Trash2 size={24} />
               </div>
-              <h2 style={{ fontSize: '1.25rem', marginBottom: '8px', textAlign: 'center' }}>Delete Showcase?</h2>
+              <h2 id="delete-dialog-title" style={{ fontSize: '1.25rem', marginBottom: '8px', textAlign: 'center' }}>Delete Showcase?</h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center', marginBottom: '24px' }}>
                 Are you sure you want to delete <strong>"{video.title}"</strong>? This action cannot be undone.
               </p>

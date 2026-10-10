@@ -24,7 +24,11 @@ const SavedVideosPage = () => {
 
       const data = await getSavedVideos(pageNumber, 12);
       if (append) {
-        setVideos((prev) => [...prev, ...(data.videos || [])]);
+        setVideos((prev) => {
+          const existingIds = new Set(prev.map((v) => v._id));
+          const unique = (data.videos || []).filter((v) => !existingIds.has(v._id));
+          return [...prev, ...unique];
+        });
       } else {
         setVideos(data.videos || []);
       }
@@ -74,9 +78,20 @@ const SavedVideosPage = () => {
 
         {/* Content Area */}
         {loading ? (
-          <div className="saved-loading-state" style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-secondary)' }}>
-            <RefreshCw size={36} className="spin" color="var(--accent-cyan)" style={{ margin: '0 auto 16px' }} />
-            <p>Loading your saved showcases...</p>
+          <div className="saved-videos-grid">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="video-card-skeleton">
+                <div className="skeleton-thumb shimmer" />
+                <div className="skeleton-content">
+                  <div className="skeleton-line title shimmer" />
+                  <div className="skeleton-line meta shimmer" />
+                  <div className="skeleton-footer">
+                    <div className="skeleton-avatar shimmer" />
+                    <div className="skeleton-line author shimmer" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="glass-card" style={{ maxWidth: '500px', margin: '40px auto', padding: '40px 24px', textAlign: 'center' }}>

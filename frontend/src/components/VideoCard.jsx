@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, Eye, Heart, MessageSquare } from 'lucide-react';
 
-const VideoCard = ({ video }) => {
+const VideoCard = memo(({ video }) => {
+  const [thumbError, setThumbError] = useState(false);
+
   if (!video) return null;
 
   const creator = video.creator || {};
-  const avatarUrl =
-    creator.profileImage ||
-    `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username || 'creator'}`;
+  const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username || 'creator'}`;
+  const avatarUrl = creator.profileImage || defaultAvatar;
 
   // Format seconds to mm:ss
   const formatDuration = (sec) => {
@@ -32,13 +33,15 @@ const VideoCard = ({ video }) => {
 
   return (
     <div className="video-card">
-      <Link to={`/v/${video._id}`} className="video-card-thumbnail-wrap">
-        {video.thumbnailUrl ? (
+      <Link to={`/v/${video._id}`} className="video-card-thumbnail-wrap" aria-label={`Watch ${video.title}`}>
+        {video.thumbnailUrl && !thumbError ? (
           <img
             src={video.thumbnailUrl}
             alt={video.title}
             className="video-card-thumbnail"
             loading="lazy"
+            decoding="async"
+            onError={() => setThumbError(true)}
           />
         ) : (
           <div className="video-card-placeholder">
@@ -47,7 +50,7 @@ const VideoCard = ({ video }) => {
         )}
 
         <div className="video-card-overlay">
-          <div className="video-card-play-btn">
+          <div className="video-card-play-btn" aria-hidden="true">
             <Play size={20} fill="white" color="white" />
           </div>
         </div>
@@ -68,7 +71,17 @@ const VideoCard = ({ video }) => {
         {/* Creator Info & Social Metrics */}
         <div className="video-card-footer-row">
           <Link to={`/u/${creator.username}`} className="video-card-creator-link">
-            <img src={avatarUrl} alt={creator.displayName || 'Creator'} className="video-card-avatar" />
+            <img
+              src={avatarUrl}
+              alt={creator.displayName || 'Creator'}
+              className="video-card-avatar"
+              loading="lazy"
+              decoding="async"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = defaultAvatar;
+              }}
+            />
             <div className="video-card-creator-text">
               <span className="video-card-creator-name">{creator.displayName || 'Spotly Creator'}</span>
               <span className="video-card-creator-handle">@{creator.username || 'creator'}</span>
@@ -97,6 +110,6 @@ const VideoCard = ({ video }) => {
       </div>
     </div>
   );
-};
+});
 
 export default VideoCard;

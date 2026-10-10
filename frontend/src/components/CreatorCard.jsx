@@ -1,14 +1,13 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Film, MapPin, Sparkles, ArrowRight } from 'lucide-react';
 import FollowButton from './FollowButton';
 
-const CreatorCard = ({ creator }) => {
+const CreatorCard = memo(({ creator }) => {
   if (!creator) return null;
 
-  const avatarUrl =
-    creator.profileImage ||
-    `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username || 'creator'}`;
+  const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${creator.username || 'creator'}`;
+  const avatarUrl = creator.profileImage || defaultAvatar;
 
   const formatCount = (num) => {
     if (!num) return '0';
@@ -29,6 +28,11 @@ const CreatorCard = ({ creator }) => {
             alt={creator.displayName || 'Creator'}
             className="creator-card-avatar"
             loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = defaultAvatar;
+            }}
           />
         </Link>
         <div className="creator-card-identity">
@@ -103,6 +107,6 @@ const CreatorCard = ({ creator }) => {
       </div>
     </div>
   );
-};
+});
 
 export default CreatorCard;

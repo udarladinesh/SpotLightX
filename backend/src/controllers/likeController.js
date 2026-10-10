@@ -43,8 +43,24 @@ const likeVideo = async (req, res, next) => {
       });
     }
 
+    // Check if user already liked this video to guarantee idempotency and avoid duplicate processing
+    const existingLike = await Like.findOne({
+      user: req.user._id,
+      video: id
+    });
+
+    if (existingLike) {
+      const likeCount = await Like.countDocuments({ video: id });
+      return res.status(200).json({
+        success: true,
+        message: 'Video already liked.',
+        liked: true,
+        likeCount
+      });
+    }
+
     let isNewLike = false;
-    // Create like or handle duplicate gracefully
+    // Create like or handle race-condition duplicate gracefully
     try {
       await Like.create({
         user: req.user._id,

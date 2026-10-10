@@ -62,7 +62,12 @@ const CommentSection = ({ videoId, initialCommentCount = 0, onCountChange = null
       setLoadingMore(true);
       const nextPage = page + 1;
       const data = await getVideoComments(videoId, nextPage, 15);
-      setComments((prev) => [...prev, ...(data.comments || [])]);
+      const newComments = data.comments || [];
+      setComments((prev) => {
+        const existingIds = new Set(prev.map((c) => c._id));
+        const unique = newComments.filter((c) => !existingIds.has(c._id));
+        return [...prev, ...unique];
+      });
       setPage(nextPage);
       setHasMore(data.page < data.totalPages);
     } catch (err) {

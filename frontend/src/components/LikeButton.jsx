@@ -21,6 +21,9 @@ const LikeButton = ({
   const [animating, setAnimating] = useState(false);
   const [error, setError] = useState(null);
 
+  // Synchronous ref lock to prevent duplicate clicks before React re-render
+  const isLockedRef = React.useRef(false);
+
   useEffect(() => {
     setLiked(Boolean(initialLiked));
     setLikeCount(Number(initialCount) || 0);
@@ -35,7 +38,9 @@ const LikeButton = ({
       return;
     }
 
-    if (loading || !videoId) return;
+    // Immediately drop duplicate clicks
+    if (isLockedRef.current || loading || !videoId) return;
+    isLockedRef.current = true;
 
     const previousLiked = liked;
     const previousCount = likeCount;
@@ -71,7 +76,10 @@ const LikeButton = ({
       setTimeout(() => setError(null), 3000);
     } finally {
       setLoading(false);
-      setTimeout(() => setAnimating(false), 600);
+      setTimeout(() => {
+        setAnimating(false);
+        isLockedRef.current = false;
+      }, 300);
     }
   };
 

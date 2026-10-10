@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2, Clock, AlertCircle } from 'lucide-react';
 
-const CommentItem = ({ comment, currentUser, onDelete }) => {
+const CommentItem = memo(({ comment, currentUser, onDelete }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -10,7 +10,8 @@ const CommentItem = ({ comment, currentUser, onDelete }) => {
 
   const author = comment.user || {};
   const isOwner = currentUser && (currentUser._id === author._id || currentUser.username === author.username);
-  const avatarUrl = author.profileImage || `https://api.dicebear.com/7.x/bottts/svg?seed=${author.username || 'commenter'}`;
+  const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${author.username || 'commenter'}`;
+  const avatarUrl = author.profileImage || defaultAvatar;
 
   // Time formatter
   const formatDate = (dateStr) => {
@@ -49,6 +50,12 @@ const CommentItem = ({ comment, currentUser, onDelete }) => {
             src={avatarUrl}
             alt={author.displayName || 'User'}
             className="comment-avatar-img"
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = defaultAvatar;
+            }}
           />
         </Link>
       </div>
@@ -107,6 +114,6 @@ const CommentItem = ({ comment, currentUser, onDelete }) => {
       </div>
     </div>
   );
-};
+});
 
 export default CommentItem;

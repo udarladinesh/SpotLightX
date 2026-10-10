@@ -12,7 +12,7 @@ const Footer = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span className="footer-phase-badge">Phase 1: Project Foundation</span>
+          <span className="footer-phase-badge">Spotly Platform • Talent Discovery</span>
         </div>
       </div>
     </footer>
